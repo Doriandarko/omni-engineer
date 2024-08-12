@@ -2,6 +2,11 @@
 An intelligent assistant designed to enhance your development workflow.
 ## 🔍 Overview
 Omni Engineer is a console-based tool that integrates AI capabilities into your development process. It offers smart responses to coding queries, file management, web searching, and image processing functionalities.
+
+Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/Doriandarko/claude-engineer).built from my extensive usage of hand-made AI tools and trial and error and feedback recieved. Compared to Claude Engineer, this new script allows for more control via simplicity while leaving some of the other functionalities like a fully automated flow, or the ability to run code. 
+At the same time, bring some cool new stuff like multi-file editing and save/resume of chats.
+I see this framework as more suitable for people who actually want to code with a better assistant on their side, versus something that is fully automatic.
+
 ## 🌟 Features
 - AI-Powered Responses
 - File Management (Add, Edit, Create)
