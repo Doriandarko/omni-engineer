@@ -1,4 +1,4 @@
-# 🧠 Omni Engineer: AI-Powered Developer Console
+# 🧠 Omni Engineer: An AI Agents Powered Developer Console
 An intelligent assistant designed to enhance your development workflow.
 ## 🔍 Overview
 Omni Engineer is a console-based tool that integrates AI capabilities into your development process. It offers smart responses to coding queries, file management, web searching, and image processing functionalities.
