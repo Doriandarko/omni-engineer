@@ -25,6 +25,7 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
 
 
+
 is_diff_on = True  
 
 init(autoreset=True)
@@ -36,6 +37,11 @@ client = OpenAI(
 
 DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
 EDITOR_MODEL = "google/gemini-pro-1.5"
+# Other common models:
+# "openai/gpt-4o-2024-08-06"
+# "meta-llama/llama-3.1-405b-instruct"
+# "anthropic/claude-3-haiku"
+# "mistralai/mistral-large"
 
 SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
 - You write clean, efficient code
