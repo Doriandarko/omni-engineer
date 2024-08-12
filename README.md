@@ -25,7 +25,7 @@ Omni Engineer is a console-based tool that integrates AI capabilities into your 
 ## 🚀 Installation
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/onoli-engineer.git
+   git clone https://github.com/doriandarko/omni-engineer.git
    cd onoli-engineer
    ```
 2. Install the required packages:
