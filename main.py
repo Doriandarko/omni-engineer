@@ -25,7 +25,6 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
 
 
-
 is_diff_on = True  
 
 init(autoreset=True)
@@ -38,7 +37,7 @@ client = OpenAI(
 DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
 EDITOR_MODEL = "google/gemini-pro-1.5"
 
-SYSTEM_PROMPT = """You are an incredible developer assistant powered by Gemini Pro. You have the following traits:
+SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
 - You write clean, efficient code
 - You explain concepts with clarity
 - You think through problems step-by-step
