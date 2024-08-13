@@ -51,3 +51,7 @@ After launching the console, enter commands or questions as needed. The AI will 
 Omni Engineer utilizes OpenRouter to access a variety of AI models. For detailed information on available models and their capabilities, refer to [OpenRouter's documentation](https://openrouter.ai/models).
 ## 🐛 Issue Reporting
 Please use the issue tracker only for reporting actual bugs in the code. This helps keep the issue tracker focused on improving the project's stability and functionality.
+
+## ⭐️ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Doriandarko/omni-engineer&type=Date)](https://star-history.com/#Doriandarko/omni-engineer&Date)
