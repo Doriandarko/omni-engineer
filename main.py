@@ -34,6 +34,7 @@ load_dotenv()
 
 DEFAULT_MODEL = "claude-3-sonnet-20240229"
 EDITOR_MODEL = "gemini-pro-1.5"
+BASE_URL = None  # New constant for base_url
 # Other common models:
 # "gpt-4"
 # "llama-2-70b-chat"
@@ -222,6 +223,7 @@ def get_streaming_response(messages, model):
         model=model,
         messages=messages,
         stream=True,
+        base_url=BASE_URL,
     )
     full_response = ""
     for chunk in stream:
