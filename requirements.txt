@@ -8,3 +8,4 @@ Pillow
 prompt_toolkit
 requests
 litellm
+argparse

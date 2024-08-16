@@ -1,6 +1,7 @@
 import os
-from litellm import completion
 import sys
+import argparse
+from litellm import completion
 from dotenv import load_dotenv
 from colorama import init, Fore, Back, Style
 import difflib
@@ -34,7 +35,8 @@ load_dotenv()
 
 DEFAULT_MODEL = "claude-3-sonnet-20240229"
 EDITOR_MODEL = "gemini-pro-1.5"
-BASE_URL = None  # New constant for base_url
+BASE_URL = None
+API_KEY = None
 # Other common models:
 # "gpt-4"
 # "llama-2-70b-chat"
@@ -224,6 +226,7 @@ def get_streaming_response(messages, model):
         messages=messages,
         stream=True,
         base_url=BASE_URL,
+        api_key=API_KEY,
     )
     full_response = ""
     for chunk in stream:
@@ -649,7 +652,20 @@ def print_welcome_message():
 
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="AI Developer Console")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help="Model to use for completion")
+    parser.add_argument("--openai-api-base", help="Base URL for the OpenAI API")
+    parser.add_argument("--openai-api-key", help="API key for OpenAI")
+    return parser.parse_args()
+
 async def main():
+    args = parse_arguments()
+    global DEFAULT_MODEL, BASE_URL, API_KEY
+    DEFAULT_MODEL = args.model
+    BASE_URL = args.openai_api_base
+    API_KEY = args.openai_api_key
+
     default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     editor_chat_history = [{"role": "system", "content": EDITOR_PROMPT}]
     clear_console()
