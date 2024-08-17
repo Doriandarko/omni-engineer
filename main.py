@@ -26,14 +26,10 @@ from prompt_toolkit.application.current import get_app
 
 
 
-is_diff_on = True  
+is_diff_on = True
 
 init(autoreset=True)
 load_dotenv()
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-)
 
 DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
 EDITOR_MODEL = "google/gemini-pro-1.5"
@@ -42,6 +38,27 @@ EDITOR_MODEL = "google/gemini-pro-1.5"
 # "meta-llama/llama-3.1-405b-instruct"
 # "anthropic/claude-3-haiku"
 # "mistralai/mistral-large"
+
+# DEFAULT_MAX_TOKENS=8000
+
+client = None
+if os.getenv("OPENROUTER_API_KEY"):
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY")
+    )
+    # DEFAULT_MAX_TOKENS=2000
+elif os.getenv("GROQ_API_KEY"):
+    client = OpenAI(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=os.getenv("GROQ_API_KEY")
+    )
+    DEFAULT_MODEL = "llama-3.1-70b-versatile"
+    EDITOR_MODEL = "llama-3.1-70b-versatile"
+else:
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
 
 SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
 - You write clean, efficient code
@@ -223,6 +240,7 @@ def print_colored(text, color=Fore.WHITE, style=Style.NORMAL, end='\n'):
 def get_streaming_response(messages, model):
     stream = client.chat.completions.create(
         model=model,
+        # max_tokens=DEFAULT_MAX_TOKENS,
         messages=messages,
         stream=True,
     )
@@ -364,6 +382,7 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
         for chunk in client.chat.completions.create(
             model=EDITOR_MODEL,   
             messages=editor_chat_history,
+            # max_tokens=DEFAULT_MAX_TOKENS,
             stream=True,
         ):
             if chunk.choices[0].delta.content:
