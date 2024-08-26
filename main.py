@@ -267,35 +267,46 @@ def is_text_file(file_path, sample_size=8192, text_characters=set(bytes(range(32
     except IOError:
         return False
 
-async def handle_add_command(chat_history, *paths):
+async def handle_add_command(chat_history, *args):
     global added_files
     contents = []
     new_context = ""
 
+    def search_files(folder, pattern):
+        import fnmatch
+        found_files = []
+        for root, _, files in os.walk(folder):
+            for file in files:
+                if fnmatch.fnmatch(file, pattern):
+                    found_files.append(os.path.join(root, file))
+        return found_files
+
+    if len(args) >= 2 and os.path.isdir(args[0]):
+        folder = args[0]
+        pattern = args[1]
+        paths = search_files(folder, pattern)
+        if not paths:
+            print_colored(f"❌ No files matching pattern '{pattern}' found in {folder}", Fore.YELLOW)
+    else:
+        paths = args
+
     for path in paths:
-        if os.path.isfile(path):  # File handling
-            content = read_file_content(path)
-            if not content.startswith("❌"):
-                contents.append((path, content))
-                added_files.append(path)
-
-        elif os.path.isdir(path):  # Directory handling
-            print_colored(f"📁 Processing folder: {path}", Fore.CYAN)
-            for item in os.listdir(path):
-                item_path = os.path.join(path, item)
-                if os.path.isfile(item_path) and is_text_file(item_path):
-                    content = read_file_content(item_path)
-                    if not content.startswith("❌"):
-                        contents.append((item_path, content))
-                        added_files.append(item_path)
-
+        if os.path.isfile(path):
+            if is_text_file(path):
+                content = read_file_content(path)
+                if not content.startswith("❌"):
+                    contents.append((path, content))
+                    added_files.append(path)
+            else:
+                print_colored(f"⚠️ Skipping non-text file: {path}", Fore.YELLOW)
+        elif os.path.isdir(path):
+            print_colored(f"📁 {path} is a directory. Use 'add <FOLDERNAME> <FILE_PATTERN>' to add all files of a specific type.", Fore.YELLOW)
         else:
-            print_colored(f"❌ '{path}' is neither a valid file nor folder.", Fore.RED)
+            print_colored(f"❌ '{path}' is not a valid file or folder.", Fore.RED)
 
     if contents:
         for fp, content in contents:
-            new_context += f"""The following file has been added: {fp}:
-\n{content}\n\n"""
+            new_context += f"The following file has been added: {fp}:\n{content}\n\n"
 
         chat_history.append({"role": "user", "content": new_context})
         print_colored(f"✅ Added {len(contents)} files to knowledge!", Fore.GREEN)
@@ -304,16 +315,24 @@ async def handle_add_command(chat_history, *paths):
 
     return chat_history
 
-async def handle_edit_command(default_chat_history, editor_chat_history, filepaths):
-    all_contents = [read_file_content(fp) for fp in filepaths]
-    valid_files, valid_contents = [], []
+async def handle_edit_command(default_chat_history, editor_chat_history, filepaths=None):
+    global added_files
+    valid_files = []
+    valid_contents = []
 
-    for filepath, content in zip(filepaths, all_contents):
-        if content.startswith("❌"):
-            print_colored(content, Fore.RED)
+    if not filepaths:
+        filepaths = added_files
+
+    for filepath in filepaths:
+        if os.path.isfile(filepath):
+            content = read_file_content(filepath)
+            if not content.startswith("❌"):
+                valid_files.append(filepath)
+                valid_contents.append(content)
+            else:
+                print_colored(content, Fore.RED)
         else:
-            valid_files.append(filepath)
-            valid_contents.append(content)
+            print_colored(f"❌ '{filepath}' is not a valid file.", Fore.RED)
 
     if not valid_files:
         print_colored("❌ No valid files to edit.", Fore.YELLOW)
@@ -349,7 +368,8 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
 
             current_content = read_file_content(filepath)  # Read fresh
             if current_content.startswith("❌"):
-                return default_chat_history, editor_chat_history
+                print_colored(f"❌ Error reading {filepath}: {current_content}", Fore.RED)
+                continue
 
             lines = current_content.split('\n')
             buffer = ""
@@ -534,7 +554,7 @@ def print_welcome_message():
     table.add_column("Command", style="cyan", no_wrap=True)
     table.add_column("Description")
 
-    table.add_row("/add", "Add files to AI's knowledge base")
+    table.add_row("/add", "Add files to AI's knowledge base (can use: /add <file1> <file2> ... or /add <FOLDERNAME> <FILE_PATTERN>)")
     table.add_row("/edit", "Edit existing files")
     table.add_row("/new", "Create new files")
     table.add_row("/search", "Perform a DuckDuckGo search")
@@ -656,8 +676,8 @@ async def main():
                 default_chat_history = await handle_add_command(default_chat_history, *filepaths)
                 continue
 
-            if prompt.startswith("/edit "):
-                filepaths = prompt.split("/edit ", 1)[1].strip().split()
+            if prompt.startswith("/edit"):
+                filepaths = prompt.split("/edit", 1)[1].strip().split() if len(prompt.split()) > 1 else None
                 default_chat_history, editor_chat_history = await handle_edit_command(
                     default_chat_history, editor_chat_history, filepaths
                 )
