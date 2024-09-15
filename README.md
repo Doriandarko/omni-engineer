@@ -4,7 +4,7 @@ An intelligent assistant designed to enhance your development workflow with adva
 
 ## ✨ NEW
 O1 support. Simply use 
-openai/o1-preview or openai/o1-mini
+openai/o1-preview or openai/o1-mini as models.
 
 ## 🔍 Overview
 
