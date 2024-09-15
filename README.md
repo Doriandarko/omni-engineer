@@ -3,7 +3,8 @@
 An intelligent assistant designed to enhance your development workflow with advanced AI capabilities.
 
 ## ✨ NEW
-O1 support. Simply use 
+
+O1 support. Simply use
 openai/o1-preview or openai/o1-mini as models.
 
 ## 🔍 Overview
@@ -61,7 +62,7 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
    ```
 4. Run the main script:
    ```
-   python omni-eng.py
+   python main.py
    ```
 
 ## 📚 Usage
