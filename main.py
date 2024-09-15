@@ -33,8 +33,8 @@ client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
-DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
-EDITOR_MODEL = "google/gemini-pro-1.5"
+DEFAULT_MODEL = "openai/o1-mini-2024-09-12"
+EDITOR_MODEL = "anthropic/claude-3.5-sonnet"
 # Other common models:
 # "openai/gpt-4o-2024-08-06"
 # "meta-llama/llama-3.1-405b-instruct"
@@ -49,7 +49,7 @@ SYSTEM_PROMPT = """You are an incredible developer assistant. You have the follo
 
 When given an /edit instruction:
 - First After completing the code review, construct a plan for the change
-- Then provide specific line-by-line edit instructions
+- Then provide specific edit instructions
 - Format your response as edit instructions
 - Do NOT execute changes yourself"""
 
@@ -65,7 +65,8 @@ ULTRA IMPORTANT:
 - YOU ONLY OUTPUT THE CODE.
 - NEVER!!! add the type of file at the beginning of the file like ```python etq.
 - ULTRA IMPORTANT you NEVER!!! add ``` at the start or end of the file meaning you never add anything that is not the code at the start or end of the file.
-- Never change imports or function definitions unless explicitly instructed"""
+- Never change imports or function definitions unless explicitly instructed
+- If you spot potential issues in the instructions, fix them!"""
 
 added_files = []
 stored_searches = {}
