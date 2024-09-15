@@ -2,6 +2,10 @@
 
 An intelligent assistant designed to enhance your development workflow with advanced AI capabilities.
 
+## ✨ NEW
+O1 support. Simply use 
+openai/o1-preview or openai/o1-mini
+
 ## 🔍 Overview
 
 Omni Engineer is a console-based tool that integrates AI capabilities into your development process. It offers smart responses to coding queries, file management, web searching, and image processing functionalities, now with enhanced features for a more robust development experience.
