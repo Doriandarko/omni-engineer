@@ -12,9 +12,9 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters import TerminalFormatter
 from rich.console import Console
 from rich.table import Table
-import base64  # Add this to your imports!
+import base64
 from urllib.parse import urlparse
-import requests   # Add this too!
+import requests
 from PIL import Image
 from io import BytesIO
 from prompt_toolkit import PromptSession
@@ -23,8 +23,6 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
-
-
 
 is_diff_on = True
 
@@ -86,22 +84,22 @@ ULTRA IMPORTANT:
 - ULTRA IMPORTANT you NEVER!!! add ``` at the start or end of the file meaning you never add anything that is not the code at the start or end of the file.
 - Never change imports or function definitions unless explicitly instructed"""
 
-added_files = []  
-stored_searches = {}  
+added_files = []
+stored_searches = {}
 file_templates = {
     "python": "def main():\n    pass\n\nif __name__ == \"__main__\":\n    main()",
     "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Document</title>\n</head>\n<body>\n    \n</body>\n</html>",
     "javascript": "// Your JavaScript code here"
 }
 undo_history = {}
-stored_images = {}  # Add with your other globals!
+stored_images = {}
 command_history = FileHistory('.aiconsole_history.txt')
-commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', 'exit'], ignore_case=True)
+commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/help', '/model', '/change_model', '/show', 'exit'], ignore_case=True)
 session = PromptSession(history=command_history)
 
 async def get_input_async(message):
     session = PromptSession()
-    result = await session.prompt_async(HTML(f"<ansired>{message}</ansired> "), 
+    result = await session.prompt_async(HTML(f"<ansired>{message}</ansired> "),
         auto_suggest=AutoSuggestFromHistory(),
         completer=commands,
         refresh_interval=0.5)
@@ -117,25 +115,25 @@ def encode_image(image_path):
     except IOError:
         return None
 
-def validate_image_url(url):
+def validate_image_url(url, timeout=10):
     try:
         response = requests.get(
-            url, 
-            stream=True, 
-            timeout=5,
+            url,
+            stream=True,
+            timeout=timeout,
             headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.28 Safari/537.36'}
         )
-        response.raise_for_status() 
-        
+        response.raise_for_status()
+
         # Check Content-Type
         content_type = response.headers.get('Content-Type', '').lower()
-        if content_type.startswith(('image/', 'application/octet-stream')):  
+        if content_type.startswith(('image/', 'application/octet-stream')):
             return True
 
         # Force load it as an image
         image = Image.open(BytesIO(response.content))
         image.verify()
-        
+
         return True
 
     except requests.exceptions.RequestException as e:
@@ -156,13 +154,12 @@ def is_url(string):
     except ValueError:
         return False
 
-
 async def handle_image_command(filepaths_or_urls, default_chat_history):
     """Add local images & URLs to memory and chat history"""
     if not filepaths_or_urls:
         print_colored("❌ No images or URLs provided.", Fore.RED)
         return default_chat_history
-    
+
     processed_images = 0
     success_images = 0
 
@@ -171,38 +168,38 @@ async def handle_image_command(filepaths_or_urls, default_chat_history):
             if is_url(image_path):  # URL-based
                 if validate_image_url(image_path):
                     stored_images[f"image_{len(stored_images) + 1}"] = {
-                        "type": "image", 
-                        "source": "url", 
+                        "type": "image",
+                        "source": "url",
                         "content": image_path
                     }
                     default_chat_history.append({
-                        "role": "user", 
+                        "role": "user",
                         "content": [{"type": "image_url", "image_url": {"url": image_path}}]
                     })
                     print_colored(f"✅ URL-based image {idx} added successfully!", Fore.GREEN)
                     success_images += 1
                 else:
                     print_colored(f"❌ {image_path} isn't a valid image URL. Skipping.", Fore.RED)
-            
+
             else:  # Local filepath
                 image_content = encode_image(image_path)
                 if image_content:
                     try:
                         # Detect if it's actually an image
                         with Image.open(image_path) as img:
-                            img_format = img.format.lower()
+                            img_format = img.format.lower() if img.format else None
                             if img_format not in ['jpeg', 'jpg', 'png', 'webp', 'gif']:
-                                raise ValueError("Unsupported image format")
-                            
+                                raise ValueError(f"Unsupported image format: {img_format}")
+
                             data_uri = f"data:image/{img_format};base64,{image_content}"
-                            
+
                             stored_images[f"image_{len(stored_images) + 1}"] = {
-                                "type": "image", 
-                                "source": "local", 
+                                "type": "image",
+                                "source": "local",
                                 "content": data_uri
                             }
                             default_chat_history.append({
-                                "role": "user", 
+                                "role": "user",
                                 "content": [{
                                     "type": "image_url",
                                     "image_url": {"url": data_uri}
@@ -214,28 +211,25 @@ async def handle_image_command(filepaths_or_urls, default_chat_history):
                         print_colored(f"❌ {image_path} isn't a valid image. Error: {e}. Skipping.", Fore.RED)
                 else:
                     print_colored(f"❌ Failed loading: {image_path}", Fore.RED)
-        
+
         except Exception as e:
             print_colored(f"❌ Unexpected error processing {image_path}: {e}. Skipping.", Fore.RED)
 
         processed_images += 1  # Always increment, even if we skip
 
     print_colored(f"🖼️ {processed_images} images processed. {success_images} added successfully. {len(stored_images)} total images in memory!", Fore.CYAN)
-    
+
     return default_chat_history
 
 async def aget_results(word):
     results = await AsyncDDGS(proxy=None).atext(word, max_results=100)
     return results
 
-
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-
 def print_colored(text, color=Fore.WHITE, style=Style.NORMAL, end='\n'):
     print(f"{style}{color}{text}{Style.RESET_ALL}", end=end)
-
 
 def get_streaming_response(messages, model):
     stream = client.chat.completions.create(
@@ -252,6 +246,21 @@ def get_streaming_response(messages, model):
 
     return full_response.strip()
 
+    try:
+        stream = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            stream=True,
+        )
+        full_response = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                print_colored(chunk.choices[0].delta.content, end="")
+                full_response += chunk.choices[0].delta.content
+        return full_response.strip()
+    except Exception as e:
+        print_colored(f"Error in streaming response: {e}", Fore.RED)
+        return ""
 
 def read_file_content(filepath):
     try:
@@ -262,7 +271,6 @@ def read_file_content(filepath):
     except IOError as e:
         return f"❌ Error reading {filepath}: {e}"
 
-
 def write_file_content(filepath, content):
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -270,7 +278,7 @@ def write_file_content(filepath, content):
         return True
     except IOError:
         return False
-    
+
 def is_text_file(file_path, sample_size=8192, text_characters=set(bytes(range(32,127)) + b'\n\r\t\b')):
     """Determine whether a file is text or binary."""
     try:
@@ -289,7 +297,6 @@ def is_text_file(file_path, sample_size=8192, text_characters=set(bytes(range(32
 
     except IOError:
         return False
-
 
 async def handle_add_command(chat_history, *paths):
     global added_files
@@ -320,7 +327,7 @@ async def handle_add_command(chat_history, *paths):
         for fp, content in contents:
             new_context += f"""The following file has been added: {fp}:
 \n{content}\n\n"""
-            
+
         chat_history.append({"role": "user", "content": new_context})
         print_colored(f"✅ Added {len(contents)} files to knowledge!", Fore.GREEN)
     else:
@@ -356,73 +363,82 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
     print_colored("\n" + "=" * 50, Fore.MAGENTA)
 
     for idx, (filepath, content) in enumerate(zip(valid_files, valid_contents), 1):
-        print_colored(f"📝 EDITING {filepath} ({idx}/{len(valid_files)}):", Fore.BLUE)
+        try:
+            print_colored(f"📝 EDITING {filepath} ({idx}/{len(valid_files)}):", Fore.BLUE)
 
-        edit_message = f"""
-        Original code:
+            edit_message = f"""
+            Original code:
 
-        {content}
+            {content}
 
-        Instructions: {default_instructions}
+            Instructions: {default_instructions}
 
-        Follow only instructions applicable to {filepath}. Output ONLY the new code. No explanations. DO NOT ADD ANYTHING ELSE. no type of file at the beginning of the file like ```python etq. no ``` at the end of the file.
-        """
+            Follow only instructions applicable to {filepath}. Output ONLY the new code. No explanations. DO NOT ADD ANYTHING ELSE. no type of file at the beginning of the file like ```python etq. no ``` at the end of the file.
+            """
 
-        editor_chat_history.append({"role": "user", "content": edit_message})
+            editor_chat_history.append({"role": "user", "content": edit_message})
 
-        current_content = read_file_content(filepath)  # Read fresh
-        if current_content.startswith("❌"):  # Your phenomenal error check
-            return default_chat_history, editor_chat_history
+            current_content = read_file_content(filepath)  # Read fresh
+            if current_content.startswith("❌"):
+                return default_chat_history, editor_chat_history
 
-        lines = current_content.split('\n')
-        buffer = ""
-        result = ""
-        line_index = 0  
+            lines = current_content.split('\n')
+            buffer = ""
+            edited_lines = lines.copy()  # Create a copy to store edited lines
+            line_index = 0
 
-        for chunk in client.chat.completions.create(
-            model=EDITOR_MODEL,   
-            messages=editor_chat_history,
-            # max_tokens=DEFAULT_MAX_TOKENS,
-            stream=True,
-        ):
-            if chunk.choices[0].delta.content:
-                content = chunk.choices[0].delta.content
-                print_colored(content, end="")  
-                buffer += content
-                
-                while '\n' in buffer:
-                    line, buffer = buffer.split('\n', 1)
-                    if line_index < len(lines):  
-                        lines[line_index] = line   
-                        write_file_content(filepath, '\n'.join(lines))  
-                        print_colored(f"✏️ Updated Line {line_index+1}: {line[:50]}...", Fore.CYAN)  # Show debug
-                        line_index += 1
-                    else:
-                        lines.append(line)  
-                        write_file_content(filepath, '\n'.join(lines)) 
-                        print_colored(f"➕ NEW Line {line_index+1}: {line[:50]}...", Fore.YELLOW)  
-                        line_index += 1
+            for chunk in client.chat.completions.create(
+                model=EDITOR_MODEL,
+                messages=editor_chat_history,
+                stream=True,
+            ):
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    print_colored(content, end="")
+                    buffer += content
 
-        result = '\n'.join(lines)
-        undo_history[filepath] = current_content   # Store undo 
-        editor_chat_history.append({"role": "assistant", "content": result})
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        if line_index < len(edited_lines):
+                            edited_lines[line_index] = line
+                            print_colored(f"✏️ Updated Line {line_index+1}: {line[:50]}...", Fore.CYAN)
+                            line_index += 1
+                        else:
+                            edited_lines.append(line)
+                            print_colored(f"➕ NEW Line {line_index+1}: {line[:50]}...", Fore.YELLOW)
+                            line_index += 1
 
-        if is_diff_on:  
-            display_diff(current_content, result)  # Show final diff if it's on
+            result = '\n'.join(edited_lines)
+            undo_history[filepath] = current_content   # Store undo
+            editor_chat_history.append({"role": "assistant", "content": result})
 
-        print_colored(f"✅ {filepath} successfully edited!", Fore.GREEN)
-        print_colored("=" * 50, Fore.MAGENTA)
+            if is_diff_on:
+                display_diff(current_content, result)  # Show final diff if it's on
+
+            # Write the changes to the file only after the entire editing process
+            if write_file_content(filepath, result):
+                print_colored(f"✅ {filepath} successfully edited and saved!", Fore.GREEN)
+            else:
+                print_colored(f"❌ Failed to save changes to {filepath}", Fore.RED)
+
+            print_colored("=" * 50, Fore.MAGENTA)
+        except Exception as e:
+            print_colored(f"❌ Error editing {filepath}: {e}", Fore.RED)
 
     return default_chat_history, editor_chat_history
 
 async def handle_new_command(default_chat_history, editor_chat_history, filepaths):
+    if not filepaths:
+        print_colored("❌ No file paths provided.", Fore.RED)
+        return default_chat_history, editor_chat_history
+
     print_colored(f"🆕 Creating new files: {', '.join(filepaths)}", Fore.BLUE)
     created_files = []
     for filepath in filepaths:
-        file_ext = os.path.splitext(filepath)[1][1:]  
-        template = file_templates.get(file_ext, "")  
+        file_ext = os.path.splitext(filepath)[1][1:]
+        template = file_templates.get(file_ext, "")
         try:
-            with open(filepath, 'x') as f:  
+            with open(filepath, 'x') as f:
                 f.write(template)
             print_colored(f"✅ Created {filepath} with template", Fore.GREEN)
             created_files.append(filepath)
@@ -433,7 +449,7 @@ async def handle_new_command(default_chat_history, editor_chat_history, filepath
             print_colored(f"❌ Could not create {filepath}: {e}", Fore.RED)
 
     if created_files:
-        user_input = (await get_input_async(f"Do you want to edit the newly created files? (y/n):")).lower()  # Fixed line!
+        user_input = (await get_input_async(f"Do you want to edit the newly created files? (y/n):")).lower()
         if user_input == 'y':
             default_chat_history, editor_chat_history = await handle_edit_command(
                 default_chat_history, editor_chat_history, created_files
@@ -441,22 +457,21 @@ async def handle_new_command(default_chat_history, editor_chat_history, filepath
 
     return default_chat_history, editor_chat_history
 
-
 async def handle_clear_command():
-    global added_files, stored_searches, stored_images  # Add stored_images!
+    global added_files, stored_searches, stored_images
     cleared_something = False
 
     if added_files:
         added_files.clear()
         cleared_something = True
         print_colored("✅ Cleared memory of added files.", Fore.GREEN)
-    
+
     if stored_searches:
         stored_searches.clear()
         cleared_something = True
         print_colored("✅ Cleared stored searches.", Fore.GREEN)
-    
-    if stored_images:  # New!
+
+    if stored_images:
         image_count = len(stored_images)
         stored_images.clear()
         cleared_something = True
@@ -464,7 +479,6 @@ async def handle_clear_command():
 
     if not cleared_something:
         print_colored("ℹ️ No files, searches or images in memory to clear.", Fore.YELLOW)
-
 
 async def handle_reset_command(default_chat_history, editor_chat_history):
     """Clears all chat history and added files memory."""
@@ -486,7 +500,6 @@ async def handle_reset_command(default_chat_history, editor_chat_history):
 
     return default_chat_history, editor_chat_history  # Return the resetted histories
 
-
 def toggle_diff():
     global is_diff_on
     is_diff_on = not is_diff_on
@@ -495,7 +508,6 @@ def toggle_diff():
         f"Diff is now {status} 🚀" if is_diff_on else f"Diff is now {status} 🚫",
         Fore.YELLOW,
     )
-
 
 def handle_history_command(chat_history):
     print_colored("\n📜 Chat History:", Fore.BLUE)
@@ -525,10 +537,14 @@ async def handle_load_command():
         return None
 
 async def handle_undo_command(filepath):
+    if not filepath:
+        print_colored("❌ No filepath provided for undo operation.", Fore.RED)
+        return
     if filepath in undo_history:
         content = undo_history[filepath]
         if write_file_content(filepath, content):
             print_colored(f"✅ Undid last edit for {filepath}", Fore.GREEN)
+            del undo_history[filepath]  # Remove the used undo history
         else:
             print_colored(f"❌ Failed to undo edit for {filepath}", Fore.RED)
     else:
@@ -538,47 +554,45 @@ def syntax_highlight(code, language):
     lexer = get_lexer_by_name(language)
     return highlight(code, lexer, TerminalFormatter())
 
-
 def print_welcome_message():
     print_colored(
-        "🔮 Welcome to the OpenAI Developer Console! 🔮", Fore.MAGENTA, Style.BRIGHT
-    )
-    print_colored("\nAvailable commands:", Fore.GREEN)
-    print_colored("/add", Fore.CYAN, end="")
-    print_colored(" <filepath1> <filepath2> ...", Style.DIM)
-    print_colored("Add one or more files to the AI's knowledge base")
-    print_colored("/edit", Fore.CYAN, end="")
-    print_colored(" <filepath1> <filepath2> ...", Style.DIM)
-    print_colored("Edit one or more existing files")
-    print_colored("/new", Fore.CYAN, end="")
-    print_colored(" <filepath1> <filepath2> ...", Style.DIM)
-    print_colored("Create one or more new files")
-    print_colored("/search", Fore.CYAN)
-    print_colored("Perform a DuckDuckGo search and store the results")
-    print_colored("/clear", Fore.CYAN)
-    print_colored("Clear all files from the AI's memory that were added with /add command")
-    print_colored("/reset", Fore.CYAN)
-    print_colored(
-        "Reset the entire chat and file memory to start fresh without restarting the script"
-    )
-    print_colored("/diff", Fore.CYAN)
-    print_colored("Toggle the display of diffs on or off")
-    print_colored("/history", Fore.CYAN)
-    print_colored("View chat history")
-    print_colored("/save", Fore.CYAN)
-    print_colored("Save chat history to a file")
-    print_colored("/load", Fore.CYAN)
-    print_colored("Load chat history from a file")
-    print_colored("/undo", Fore.CYAN)
-    print_colored(" <filepath>", Style.DIM)
-    print_colored("Undo last edit for a specific file")
-    print_colored("exit", Fore.CYAN)
-    print_colored("Exit the application")
-    print_colored(
-        "\nFor any other input, the AI will respond to your query or command.",
-        Fore.YELLOW,
+        "🔮 Welcome to the Assistant Developer Console! 🔮", Fore.MAGENTA, Style.BRIGHT
     )
 
+    console = Console()
+    table = Table()
+
+    table.add_column("Command", style="cyan", no_wrap=True)
+    table.add_column("Description")
+
+    table.add_row("/add", "Add files to AI's knowledge base")
+    table.add_row("/edit", "Edit existing files")
+    table.add_row("/new", "Create new files")
+    table.add_row("/search", "Perform a DuckDuckGo search")
+    table.add_row("/image", "Add image(s) to AI's knowledge base")
+    table.add_row("/clear", "Clear added files, searches, and images from AI's memory")
+    table.add_row("/reset", "Reset entire chat and file memory")
+    table.add_row("/diff", "Toggle display of diffs")
+    table.add_row("/history", "View chat history")
+    table.add_row("/save", "Save chat history to a file")
+    table.add_row("/load", "Load chat history from a file")
+    table.add_row("/undo", "Undo last edit for a specific file")
+    table.add_row("/help", "Show this help message")
+    table.add_row("/model", "Show current AI model")
+    table.add_row("/change_model", "Change the AI model")
+    table.add_row("/show", "Show content of a file")
+    table.add_row("exit", "Exit the application")
+
+    console.print(table)
+
+    print_colored(
+        "For any other input, the AI will respond to your query or command.",
+        Fore.YELLOW,
+    )
+    print_colored(
+        "Use '<command> help' for more information on a specific command.",
+        Fore.YELLOW,
+    )
 
 def print_files_and_searches_in_memory():
     if added_files:
@@ -592,7 +606,6 @@ def print_files_and_searches_in_memory():
             f"🔍 Searches currently in memory: {search_list}", Fore.CYAN, Style.BRIGHT
         )
 
-
 def display_diff(original, edited):
     diff = difflib.unified_diff(
         original.splitlines(), edited.splitlines(), lineterm='', n=0
@@ -605,9 +618,12 @@ def display_diff(original, edited):
         else:
             print_colored(line, Fore.BLUE)
 
-
 async def handle_search_command(default_chat_history):
     search_query = await get_input_async("What would you like to search?")
+    if not search_query.strip():
+        print_colored("❌ Empty search query. Please provide a search term.", Fore.RED)
+        return default_chat_history
+
     print_colored(f"\n🔍 Searching for: {search_query}", Fore.BLUE)
 
     try:
@@ -627,47 +643,25 @@ async def handle_search_command(default_chat_history):
 
     return default_chat_history
 
+async def handle_help_command():
+    print_welcome_message()
 
-from textwrap import dedent
+def show_current_model():
+    print_colored(f"Current model: {DEFAULT_MODEL}", Fore.CYAN)
 
-def print_welcome_message():
-    print_colored(
-        "🔮 Welcome to the Assistant Developer Console! 🔮", Fore.MAGENTA, Style.BRIGHT
-    )
-    
+async def change_model():
+    global DEFAULT_MODEL
+    new_model = await get_input_async("Enter the new model name: ")
+    DEFAULT_MODEL = new_model
+    print_colored(f"Model changed to: {DEFAULT_MODEL}", Fore.GREEN)
 
-    console = Console()
-    table = Table()
-    
-    table.add_column("Command", style="cyan", no_wrap=True)
-    table.add_column("Description")
-    
-    table.add_row("/add", "Add files to AI's knowledge base")
-    table.add_row("/edit", "Edit existing files")
-    table.add_row("/new", "Create new files")
-    table.add_row("/search", "Perform a DuckDuckGo search")
-    table.add_row("/image", "Add image(s) to AI's knowledge base")
-    table.add_row("/clear", "Clear added files, searches, and images from AI's memory")
-    table.add_row("/reset", "Reset entire chat and file memory")
-    table.add_row("/diff", "Toggle display of diffs")
-    table.add_row("/history", "View chat history")
-    table.add_row("/save", "Save chat history to a file")
-    table.add_row("/load", "Load chat history from a file")
-    table.add_row("/undo", "Undo last edit for a specific file")
-    table.add_row("exit", "Exit the application")
-    
-    console.print(table)
-    
-    print_colored(
-        "For any other input, the AI will respond to your query or command.",
-        Fore.YELLOW,
-    )
-    print_colored(
-        "Use '<command> help' for more information on a specific command.",
-        Fore.YELLOW,
-    )
-
-
+async def show_file_content(filepath):
+    content = read_file_content(filepath)
+    if content.startswith("❌"):
+        print_colored(content, Fore.RED)
+    else:
+        print_colored(f"Content of {filepath}:", Fore.CYAN)
+        print(content)
 
 async def main():
     default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -677,89 +671,106 @@ async def main():
     print_files_and_searches_in_memory()
 
     while True:
-        prompt = await get_input_async(f"\n\nYou:")
-
-        print_files_and_searches_in_memory()
-
-        if prompt.lower() == "exit":
-            print_colored(
-                "Thank you for using the OpenAI Developer Console. Goodbye!", Fore.MAGENTA
-            )
-            break
-
-    
-
-        if prompt.startswith("/add "):
-            filepaths = prompt.split("/add ", 1)[1].strip().split()
-            default_chat_history = await handle_add_command(default_chat_history, *filepaths)
-            continue
-
-        if prompt.startswith("/edit "):
-            filepaths = prompt.split("/edit ", 1)[1].strip().split()
-            default_chat_history, editor_chat_history = await handle_edit_command(  # Add "await" here
-                default_chat_history, editor_chat_history, filepaths
-            )
-            continue
-
-        if prompt.startswith("/new "):
-            filepaths = prompt.split("/new ", 1)[1].strip().split()
-            default_chat_history, editor_chat_history = await handle_new_command(   # Add "await" here
-                default_chat_history, editor_chat_history, filepaths
-            )
-            continue
-
-        if prompt.startswith("/search"):
-            default_chat_history = await handle_search_command(default_chat_history)
-            continue
-
-        if prompt.startswith("/clear"):
-            await handle_clear_command()   # Add await here
-            continue
-
-        if prompt.startswith("/reset"):
-            default_chat_history, editor_chat_history = await handle_reset_command(  # Add await here
-                default_chat_history, editor_chat_history
-            )
-            default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]  
-            editor_chat_history = [{"role": "system", "content": EDITOR_PROMPT}]
-            continue
-
-        if prompt.startswith("/diff"):
-            toggle_diff()
-            continue
-
-        if prompt.startswith("/history"):
-            handle_history_command(default_chat_history)
-            continue
-
-        if prompt.startswith("/save"):
-            await handle_save_command(default_chat_history)
-            continue
-
-        if prompt.startswith("/image "):
-            image_paths = prompt.split("/image ", 1)[1].strip().split()
-            default_chat_history = await handle_image_command(image_paths, default_chat_history)
-            continue
-
-        if prompt.startswith("/load"):
-            loaded_history = await handle_load_command()   # Add await here
-            if loaded_history:
-                default_chat_history = loaded_history
-            continue
-
-        if prompt.startswith("/undo "):
-            filepath = prompt.split("/undo ", 1)[1].strip()
-            await handle_undo_command(filepath)
-            continue
-
-        print_colored("\n🤖 Assistant:", Fore.BLUE)
         try:
-            default_chat_history.append({"role": "user", "content": prompt})
-            response = get_streaming_response(default_chat_history, DEFAULT_MODEL)
-            default_chat_history.append({"role": "assistant", "content": response})
-        except Exception as e:
-            print_colored(f"Error: {e}. Please try again.", Fore.RED)
+            prompt = await get_input_async(f"\n\nYou:")
 
+            print_files_and_searches_in_memory()
+
+            if prompt.lower() == "exit":
+                print_colored(
+                    "Thank you for using the OpenAI Developer Console. Goodbye!", Fore.MAGENTA
+                )
+                break
+
+            if prompt.startswith("/add "):
+                filepaths = prompt.split("/add ", 1)[1].strip().split()
+                default_chat_history = await handle_add_command(default_chat_history, *filepaths)
+                continue
+
+            if prompt.startswith("/edit "):
+                filepaths = prompt.split("/edit ", 1)[1].strip().split()
+                default_chat_history, editor_chat_history = await handle_edit_command(
+                    default_chat_history, editor_chat_history, filepaths
+                )
+                continue
+
+            if prompt.startswith("/new "):
+                filepaths = prompt.split("/new ", 1)[1].strip().split()
+                default_chat_history, editor_chat_history = await handle_new_command(
+                    default_chat_history, editor_chat_history, filepaths
+                )
+                continue
+
+            if prompt.startswith("/search"):
+                default_chat_history = await handle_search_command(default_chat_history)
+                continue
+
+            if prompt.startswith("/clear"):
+                await handle_clear_command()
+                continue
+
+            if prompt.startswith("/reset"):
+                default_chat_history, editor_chat_history = await handle_reset_command(
+                    default_chat_history, editor_chat_history
+                )
+                continue
+
+            if prompt.startswith("/diff"):
+                toggle_diff()
+                continue
+
+            if prompt.startswith("/history"):
+                handle_history_command(default_chat_history)
+                continue
+
+            if prompt.startswith("/save"):
+                await handle_save_command(default_chat_history)
+                continue
+
+            if prompt.startswith("/image "):
+                image_paths = prompt.split("/image ", 1)[1].strip().split()
+                default_chat_history = await handle_image_command(image_paths, default_chat_history)
+                continue
+
+            if prompt.startswith("/load"):
+                loaded_history = await handle_load_command()
+                if loaded_history:
+                    default_chat_history = loaded_history
+                continue
+
+            if prompt.startswith("/undo "):
+                filepath = prompt.split("/undo ", 1)[1].strip()
+                await handle_undo_command(filepath)
+                continue
+
+            if prompt.startswith("/help"):
+                await handle_help_command()
+                continue
+
+            if prompt.startswith("/model"):
+                show_current_model()
+                continue
+
+            if prompt.startswith("/change_model"):
+                await change_model()
+                continue
+
+            if prompt.startswith("/show "):
+                filepath = prompt.split("/show ", 1)[1].strip()
+                await show_file_content(filepath)
+                continue
+
+            print_colored("\n🤖 Assistant:", Fore.BLUE)
+            try:
+                default_chat_history.append({"role": "user", "content": prompt})
+                response = get_streaming_response(default_chat_history, DEFAULT_MODEL)
+                default_chat_history.append({"role": "assistant", "content": response})
+            except Exception as e:
+                print_colored(f"Error: {e}. Please try again.", Fore.RED)
+
+        except Exception as e:
+            print_colored(f"An error occurred: {e}", Fore.RED)
+            continue
 
 if __name__ == "__main__":
     asyncio.run(main())
