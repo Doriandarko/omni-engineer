@@ -1,0 +1,72 @@
+/* frontend/src/App.css */
+
+.App {
+  text-align: center;
+}
+
+.navbar {
+  background-color: #282c34;
+  min-height: 60px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(10px + 2vmin);
+  color: white;
+  padding: 0 20px;
+}
+
+.navbar ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+}
+
+.navbar ul li {
+  margin-right: 20px;
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+}
+
+.user-menu span {
+  margin-right: 10px;
+}
+
+.chat, .file-manager, .code-editor, .git-manager, .project-analyzer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.login-form {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.login-form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #282c34;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.error {
+  color: red;
+}
