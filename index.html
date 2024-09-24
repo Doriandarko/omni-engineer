@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/2.1.3/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        #file-list {
+            width: 400px;
+            height: 100%;
+            overflow-y: auto;
+            background-color: #f0f0f0;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #file-list ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #file-list li {
+            cursor: pointer;
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: #fff;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        #file-list li:hover {
+            background-color: #e0e0e0;
+        }
+
+        #markdown-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            box-sizing: border-box;
+            max-width: 70%
+        }
+
+        #markdown-content img {
+            max-width: 100%;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="file-list"></div>
+    <div id="markdown-content">
+        <div id="loading" class="loading">Loading...</div>
+        <div id="content"></div>
+    </div>
+
+    <script>
+        const markdownFiles = [
+            "series.md",
+            "lesson-1-ai-cli-tools.md",
+            "lesson-2-core-cli-structure.md",
+            "lesson-3-ai-integration.md",
+            "lesson-4-file-handling-context-management.md",
+            "lesson-5-web-searching-external-data-integration.md",
+            "lesson-6-advanced-cli-features.md",
+            "lesson-7-enhancing-ai-capabilities.md",
+            "lesson-8-local-vector-db-knowledge-management.md",
+            "lesson-9-git-integration-version-control.md",
+            "lesson-10-web-api.md",
+            "lesson-11-frontend-development.md",
+            "lesson-12-advanced-ai-tasks.md",
+            "bonus-lesson-easy-advancements.md",
+            "bonus-lesson-easy-advancements (1).md"
+        ];
+
+        const fileList = document.getElementById('file-list');
+        const markdownContent = document.getElementById('content');
+        const loadingIndicator = document.getElementById('loading');
+
+        // Create file list
+        const ul = document.createElement('ul');
+        markdownFiles.forEach(file => {
+            const li = document.createElement('li');
+            li.textContent = file;
+            li.onclick = () => loadMarkdownFile(file);
+            ul.appendChild(li);
+        });
+        fileList.appendChild(ul);
+
+        // Load markdown file
+        function loadMarkdownFile(filename) {
+            loadingIndicator.style.display = 'block';
+            markdownContent.innerHTML = '';
+
+            fetch(`omni-engineer lessons/${filename}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    renderMarkdown(content);
+                    loadingIndicator.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    markdownContent.innerHTML = `<p>Error loading ${filename}: ${error.message}</p>`;
+                    loadingIndicator.style.display = 'none';
+                });
+        }
+
+        // Render markdown function
+        function renderMarkdown(content) {
+            marked.setOptions({
+                highlight: function (code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                },
+                langPrefix: 'hljs language-'
+            });
+            markdownContent.innerHTML = marked(content);
+        }
+
+        // Load the first file by default
+        if (markdownFiles.length > 0) {
+            loadMarkdownFile(markdownFiles[0]);
+        }
+    </script>
+</body>
+
+</html>
