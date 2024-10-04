@@ -28,18 +28,22 @@ is_diff_on = True
 
 init(autoreset=True)
 load_dotenv()
+# Local clients/VPN users can also use https://api-local.cborg.lbl.gov
+base_url = "https://api.cborg.lbl.gov"
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-)
+    base_url=base_url,
+    api_key=os.getenv("CBORG_API_KEY"),
+    )
 
-DEFAULT_MODEL = "openai/o1-mini-2024-09-12"
-EDITOR_MODEL = "anthropic/claude-3.5-sonnet"
-# Other common models:
-# "openai/gpt-4o-2024-08-06"
-# "meta-llama/llama-3.1-405b-instruct"
-# "anthropic/claude-3-haiku"
-# "mistralai/mistral-large"
+# Some model options available at LBL
+DEFAULT_MODEL = "lbl/cborg-coder:latest"
+#DEFAULT_MODEL = "anthropic/claude:latest"
+#EDITOR_MODEL = "anthropic/claude:latest"
+#DEFAULT_MODEL = "google/gemini:latest"
+#EDITOR_MODEL = "google/gemini:latest"
+#DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
+#EDITOR_MODEL = "google/gemini-pro-1.5"
+EDITOR_MODEL = "lbl/cborg-coder:latest" 
 
 SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
 - You write clean, efficient code
