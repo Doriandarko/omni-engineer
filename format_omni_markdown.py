@@ -1,13 +1,3 @@
-"""
-This script processes a markdown file containing a conversation transcript and formats it using an LLM.
-
-Usage:
-python format_omni_markdown.py <input_file> <output_file>
-
-Args:
-    input_file: Path to the input markdown file.
-    output_file: Path to the output markdown file.
-"""
 import os
 import sys
 from openai import OpenAI
@@ -18,23 +8,18 @@ from pathlib import Path
 load_dotenv()
 
 
+
 # Initialize the OpenAI client
-openai_api_key = os.getenv("CBORG_API_KEY")
+openai_api_key = os.getenv("CYCLOGPT_API_KEY")
 if not openai_api_key:
-    raise ValueError("CBORG_API_KEY not found in environment variables")
-base_url = "https://api-local.cborg.lbl.gov/"
+    raise ValueError("CYCLOGPT_API_KEY not found in environment variables")
+# Local clients/VPN users can also use https://api-local.cborg.lbl.gov
+base_url = "https://api.cborg.lbl.gov"
+
 client = OpenAI(api_key=openai_api_key, base_url=base_url)
 
 
 def process_markdown(input_file, output_file, output_dir=None):
-    """
-    Processes a markdown file, formats it using an LLM, and writes the output to a new file.
-
-    Args:
-        input_file (str): Path to the input markdown file.
-        output_file (str): Path to the output markdown file.
-        output_dir (str, optional): Directory to save the output file. Defaults to None.
-    """
     print(f"Processing {input_file}...")
     
     # Read the input file
@@ -60,6 +45,7 @@ def process_markdown(input_file, output_file, output_dir=None):
     """
 
     # Send the content to the LLM API
+    # Note that this uses gemini-pro because it has the longest context window. Other models may not have enough context window to handle long markdown files. 
     try:
         response = client.chat.completions.create(
             model='google/gemini-pro',
@@ -91,9 +77,6 @@ def process_markdown(input_file, output_file, output_dir=None):
         file.write(formatted_content)
     print(f"Formatted content written to {output_file}")
 
-# Example usage:
-# python format_omni_markdown.py input.md output.md
-
 if __name__ == "__main__":
     try:
         if len(sys.argv) != 3:
@@ -110,3 +93,5 @@ if __name__ == "__main__":
         print("Processing complete.")
     except Exception as e:
             raise FileNotFoundError(f"Input file not found: {input_file}")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
