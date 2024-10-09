@@ -34,6 +34,7 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
 - `/image <filepath/url>`: Add images to context
 - `/clear`: Clear AI memory
 - `/reset`: Reset the session
+- `/stop`: Stop the output of the Assistant chat. Must press return after entering. 
 - `/diff`: Toggle diff display
 - `/history`: View chat history
 - `/save`: Save current chat
