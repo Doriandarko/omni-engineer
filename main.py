@@ -90,7 +90,8 @@ stored_images = {}
 command_history = FileHistory('.aiconsole_history.txt')
 commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/help', '/model', '/change_model', '/show', 'exit'], ignore_case=True)
 session = PromptSession(history=command_history)
-
+force_exit = False
+interrupt_output = False
 
 def encode_image(image_path):
     """Turn a local image into base64."""
@@ -652,6 +653,7 @@ async def show_file_content(filepath):
         print(content)
 
 async def main():
+    global interrupt_output, force_exit
     default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     editor_chat_history = [{"role": "system", "content": EDITOR_PROMPT}]
     clear_console()
