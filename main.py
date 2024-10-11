@@ -1,3 +1,4 @@
+import atexit
 import os
 from openai import OpenAI
 import sys
@@ -658,8 +659,18 @@ async def show_file_content(filepath):
         print_colored(f"Content of {filepath}:", Fore.CYAN)
         print(content)
 
+def delete_history_file():
+    history_file = '.aiconsole_history.txt'
+    if os.path.exists(history_file):
+        try:
+            os.remove(history_file)
+            print_colored("History file deleted.", Fore.GREEN)
+        except Exception as e:
+            print_colored(f"Error deleting history file: {e}", Fore.RED)
+
 async def main():
     global interrupt_output, force_exit
+    atexit.register(delete_history_file)
     default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     editor_chat_history = [{"role": "system", "content": EDITOR_PROMPT}]
     clear_console()
