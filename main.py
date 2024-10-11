@@ -42,14 +42,15 @@ client = OpenAI(
 )
 
 # Some model options available at LBL
-DEFAULT_MODEL = "lbl/cborg-coder:latest"
-#DEFAULT_MODEL = "anthropic/claude:latest"
+#DEFAULT_MODEL = "lbl/cborg-coder:latest"
+DEFAULT_MODEL = "anthropic/claude:latest"
 #EDITOR_MODEL = "anthropic/claude:latest"
 #DEFAULT_MODEL = "google/gemini:latest"
 #EDITOR_MODEL = "google/gemini:latest"
-#DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
-#EDITOR_MODEL = "google/gemini-pro-1.5"
-EDITOR_MODEL = "lbl/cborg-coder:latest" 
+#DEFAULT_MODEL = "anthropic/claude-sonnet"
+EDITOR_MODEL = "anthropic/claude-sonnet"
+#EDITOR_MODEL = "google/gemini-pro"
+#EDITOR_MODEL = "lbl/cborg-coder:latest" 
 
 SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
 - You write clean, efficient code
@@ -260,7 +261,8 @@ def write_file_content(filepath, content):
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
         return True
-    except IOError:
+    except IOError as e:
+        print_colored(f"❌ Error writing to {filepath}: {e}", Fore.RED)
         return False
 
 def is_text_file(file_path, sample_size=8192, text_characters=set(bytes(range(32,127)) + b'\n\r\t\b')):
@@ -349,6 +351,7 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
     for idx, (filepath, content) in enumerate(zip(valid_files, valid_contents), 1):
         try:
             print_colored(f"📝 EDITING {filepath} ({idx}/{len(valid_files)}):", Fore.BLUE)
+            result = ""
 
             edit_message = f"""
             Original code:
@@ -361,8 +364,10 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
             """
 
             editor_chat_history.append({"role": "user", "content": edit_message})
+            current_content = read_file_content(filepath)
+            if current_content.startswith("❌"):
+                return default_chat_history, editor_chat_history
 
-            current_content = read_file_content(filepath)  # Read fresh
             if current_content.startswith("❌"):
                 return default_chat_history, editor_chat_history
 
