@@ -43,8 +43,8 @@ client = OpenAI(
 )
 
 # Some model options available at LBL
-#DEFAULT_MODEL = "lbl/cborg-coder:latest"
-DEFAULT_MODEL = "anthropic/claude:latest"
+DEFAULT_MODEL = "lbl/cborg-coder:latest"
+#DEFAULT_MODEL = "anthropic/claude:latest"
 #EDITOR_MODEL = "anthropic/claude:latest"
 #DEFAULT_MODEL = "google/gemini:latest"
 #EDITOR_MODEL = "google/gemini:latest"

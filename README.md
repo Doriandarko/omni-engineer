@@ -1,3 +1,15 @@
+# LBL Fork
+This fork is intended to be used by researchers and staff at  Lawrence Berkeley National Laboratory.
+ 
+The LBL fork is preconfigured to work with [CBORG](https://cborg.lbl.gov/). 
+To get started you must:
+
+1. Get an API key to use the CBORG service, available [here](https://cborg.lbl.gov/api_request/).
+2. Set an environment variable on your machine for `CBORG_API_KEY`. Please use the best practices for API key management described [here](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety).
+3. The code defaults to the `lbl/cborg-coder:latest` model. If you want to choose another model (for example, Anthropic's Claude 3.5), you must edit the code in `main.py`by uncommenting the relevant models and commenting the existing ones.  
+ 
+This fork also includes a tool `format_omni_markdown.py` to format saved Markdown chat logs from Omni Engineer for easy reading.   
+
 # 🧠 Omni Engineer: An AI-Powered Developer Console
 
 An intelligent assistant designed to enhance your development workflow with advanced AI capabilities.
