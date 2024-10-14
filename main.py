@@ -1,3 +1,4 @@
+import atexit
 import os
 from openai import OpenAI
 import sys
@@ -17,12 +18,18 @@ from urllib.parse import urlparse
 import requests
 from PIL import Image
 from io import BytesIO
+
+import select
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout.containers import Window
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.application.current import get_app
+
 
 is_diff_on = True
 
@@ -33,7 +40,7 @@ base_url = "https://api.cborg.lbl.gov"
 client = OpenAI(
     base_url=base_url,
     api_key=os.getenv("CBORG_API_KEY"),
-    )
+)
 
 # Some model options available at LBL
 DEFAULT_MODEL = "lbl/cborg-coder:latest"
@@ -41,8 +48,9 @@ DEFAULT_MODEL = "lbl/cborg-coder:latest"
 #EDITOR_MODEL = "anthropic/claude:latest"
 #DEFAULT_MODEL = "google/gemini:latest"
 #EDITOR_MODEL = "google/gemini:latest"
-#DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
-#EDITOR_MODEL = "google/gemini-pro-1.5"
+#DEFAULT_MODEL = "anthropic/claude-sonnet"
+#EDITOR_MODEL = "anthropic/claude-sonnet"
+#EDITOR_MODEL = "google/gemini-pro"
 EDITOR_MODEL = "lbl/cborg-coder:latest" 
 
 SYSTEM_PROMPT = """You are an incredible developer assistant. You have the following traits:
@@ -84,14 +92,8 @@ stored_images = {}
 command_history = FileHistory('.aiconsole_history.txt')
 commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/help', '/model', '/change_model', '/show', 'exit'], ignore_case=True)
 session = PromptSession(history=command_history)
-
-async def get_input_async(message):
-    session = PromptSession()
-    result = await session.prompt_async(HTML(f"<ansired>{message}</ansired> "),
-        auto_suggest=AutoSuggestFromHistory(),
-        completer=commands,
-        refresh_interval=0.5)
-    return result.strip()
+force_exit = False
+interrupt_output = False
 
 def encode_image(image_path):
     """Turn a local image into base64."""
@@ -179,7 +181,7 @@ async def handle_image_command(filepaths_or_urls, default_chat_history):
                             if img_format not in ['jpeg', 'jpg', 'png', 'webp', 'gif']:
                                 raise ValueError(f"Unsupported image format: {img_format}")
 
-                            data_uri = f"data:image/{img_format};base64,{image_content}"
+                            data_uri = f"image/{img_format};base64,{image_content}"
 
                             stored_images[f"image_{len(stored_images) + 1}"] = {
                                 "type": "image",
@@ -228,13 +230,23 @@ def get_streaming_response(messages, model):
         )
         full_response = ""
         for chunk in stream:
+            # Check for user input without blocking
+            rlist, _, _ = select.select([sys.stdin], [], [], 0)
+            if rlist:
+                user_input = sys.stdin.readline().strip()
+                if user_input.lower() == '/stop':
+                    print_colored("\n\nResponse interrupted by user.", Fore.YELLOW)
+                    return None
+
             if chunk.choices[0].delta.content is not None:
-                print_colored(chunk.choices[0].delta.content, end="")
-                full_response += chunk.choices[0].delta.content
+                content = chunk.choices[0].delta.content
+                print_colored(content, end="")
+                full_response += content
+
         return full_response.strip()
     except Exception as e:
         print_colored(f"Error in streaming response: {e}", Fore.RED)
-        return ""
+        return None 
 
 def read_file_content(filepath):
     try:
@@ -250,7 +262,8 @@ def write_file_content(filepath, content):
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
         return True
-    except IOError:
+    except IOError as e:
+        print_colored(f"❌ Error writing to {filepath}: {e}", Fore.RED)
         return False
 
 def is_text_file(file_path, sample_size=8192, text_characters=set(bytes(range(32,127)) + b'\n\r\t\b')):
@@ -324,7 +337,7 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
         print_colored("❌ No valid files to edit.", Fore.YELLOW)
         return default_chat_history, editor_chat_history
 
-    user_request = await get_input_async(f"What would you like to change in {', '.join(valid_files)}?")
+    user_request = await session.prompt_async(HTML(f"<ansired>What would you like to change in {', '.join(valid_files)}?</ansired> "))
 
     instructions_prompt = "For these files:\n"
     instructions_prompt += "\n".join([f"File: {fp}\n```\n{content}\n```\n" for fp, content in zip(valid_files, valid_contents)])
@@ -339,6 +352,7 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
     for idx, (filepath, content) in enumerate(zip(valid_files, valid_contents), 1):
         try:
             print_colored(f"📝 EDITING {filepath} ({idx}/{len(valid_files)}):", Fore.BLUE)
+            result = ""
 
             edit_message = f"""
             Original code:
@@ -351,8 +365,10 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
             """
 
             editor_chat_history.append({"role": "user", "content": edit_message})
+            current_content = read_file_content(filepath)
+            if current_content.startswith("❌"):
+                return default_chat_history, editor_chat_history
 
-            current_content = read_file_content(filepath)  # Read fresh
             if current_content.startswith("❌"):
                 return default_chat_history, editor_chat_history
 
@@ -423,7 +439,7 @@ async def handle_new_command(default_chat_history, editor_chat_history, filepath
             print_colored(f"❌ Could not create {filepath}: {e}", Fore.RED)
 
     if created_files:
-        user_input = (await get_input_async(f"Do you want to edit the newly created files? (y/n):")).lower()
+        user_input = (await session.prompt_async(HTML(f"<ansired>Do you want to edit the newly created files? (y/n):</ansired> "))).lower()
         if user_input == 'y':
             default_chat_history, editor_chat_history = await handle_edit_command(
                 default_chat_history, editor_chat_history, created_files
@@ -491,7 +507,7 @@ def handle_history_command(chat_history):
         print_colored(f"{idx}. {role}: {content}", Fore.CYAN)
 
 async def handle_save_command(chat_history):
-    filename = await get_input_async("Enter filename to save chat history:")
+    filename = await session.prompt_async(HTML(f"<ansired>Enter filename to save chat history:</ansired> "))
     try:
         with open(filename, 'w') as f:
             json.dump(chat_history, f)
@@ -500,7 +516,7 @@ async def handle_save_command(chat_history):
         print_colored(f"❌ Error saving chat history: {e}", Fore.RED)
 
 async def handle_load_command():
-    filename = await get_input_async("Enter filename to load chat history:")
+    filename = await session.prompt_async(HTML(f"<ansired>Enter filename to load chat history:</ansired> "))
     try:
         with open(filename, 'r') as f:
             loaded_history = json.load(f)
@@ -546,6 +562,7 @@ def print_welcome_message():
     table.add_row("/image", "Add image(s) to AI's knowledge base")
     table.add_row("/clear", "Clear added files, searches, and images from AI's memory")
     table.add_row("/reset", "Reset entire chat and file memory")
+    table.add_row("/stop", "Stop the output of the Assistant chat.") 
     table.add_row("/diff", "Toggle display of diffs")
     table.add_row("/history", "View chat history")
     table.add_row("/save", "Save chat history to a file")
@@ -567,7 +584,12 @@ def print_welcome_message():
         "Use '<command> help' for more information on a specific command.",
         Fore.YELLOW,
     )
-
+    
+    print_colored(
+        "Type '/stop' and press Enter at any time to interrupt the AI's response.",
+        Fore.RED,
+    )
+   
 def print_files_and_searches_in_memory():
     if added_files:
         file_list = ', '.join(added_files)
@@ -593,7 +615,7 @@ def display_diff(original, edited):
             print_colored(line, Fore.BLUE)
 
 async def handle_search_command(default_chat_history):
-    search_query = await get_input_async("What would you like to search?")
+    search_query = await session.prompt_async(HTML(f"<ansired>What would you like to search?</ansired> "))
     if not search_query.strip():
         print_colored("❌ Empty search query. Please provide a search term.", Fore.RED)
         return default_chat_history
@@ -625,7 +647,7 @@ def show_current_model():
 
 async def change_model():
     global DEFAULT_MODEL
-    new_model = await get_input_async("Enter the new model name: ")
+    new_model = await session.prompt_async(HTML(f"<ansired>Enter the new model name: </ansired> "))
     DEFAULT_MODEL = new_model
     print_colored(f"Model changed to: {DEFAULT_MODEL}", Fore.GREEN)
 
@@ -637,16 +659,50 @@ async def show_file_content(filepath):
         print_colored(f"Content of {filepath}:", Fore.CYAN)
         print(content)
 
+def delete_history_file():
+    history_file = '.aiconsole_history.txt'
+    if os.path.exists(history_file):
+        try:
+            os.remove(history_file)
+            print_colored("History file deleted.", Fore.GREEN)
+        except Exception as e:
+            print_colored(f"Error deleting history file: {e}", Fore.RED)
+
 async def main():
+    global interrupt_output, force_exit
+    atexit.register(delete_history_file)
     default_chat_history = [{"role": "system", "content": SYSTEM_PROMPT}]
     editor_chat_history = [{"role": "system", "content": EDITOR_PROMPT}]
     clear_console()
     print_welcome_message()
     print_files_and_searches_in_memory()
 
+    session = PromptSession(
+        history=command_history,
+        enable_suspend=True,
+        complete_while_typing=True
+    )
+
+
     while True:
         try:
-            prompt = await get_input_async(f"\n\nYou:")
+            if force_exit:
+                print_colored("Gracefully exiting...", Fore.YELLOW)
+                break
+             
+            prompt = await session.prompt_async(HTML(f"<ansired>\n\nYou:</ansired> "),
+                auto_suggest=AutoSuggestFromHistory(),
+                completer=commands,
+                refresh_interval=0.5,
+            )
+
+            if interrupt_output:
+                print_colored("\nOperation interrupted by user.", Fore.YELLOW)
+                interrupt_output = False
+                continue
+
+            if prompt is None or prompt.strip() == "":
+                continue
 
             print_files_and_searches_in_memory()
 
@@ -738,13 +794,15 @@ async def main():
             try:
                 default_chat_history.append({"role": "user", "content": prompt})
                 response = get_streaming_response(default_chat_history, DEFAULT_MODEL)
-                default_chat_history.append({"role": "assistant", "content": response})
+                if response is not None:
+                    default_chat_history.append({"role": "assistant", "content": response})
+                else:
+                    print_colored("\nResponse was interrupted and not saved to chat history.", Fore.YELLOW)
             except Exception as e:
-                print_colored(f"Error: {e}. Please try again.", Fore.RED)
-
+                print_colored(f"Error in assistant response: {e}", Fore.RED)
+                continue
         except Exception as e:
-            print_colored(f"An error occurred: {e}", Fore.RED)
-            continue
+            print_colored(f"An unexpected error occurred: {e}", Fore.RED)
 
 if __name__ == "__main__":
     asyncio.run(main())
