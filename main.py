@@ -43,12 +43,12 @@ client = OpenAI(
 )
 
 # Some model options available at LBL
-#DEFAULT_MODEL = "lbl/cborg-coder:latest"
-#EDITOR_MODEL = "lbl/cborg-coder:latest"
+DEFAULT_MODEL = "lbl/cborg-coder:latest"
+EDITOR_MODEL = "lbl/cborg-coder:latest"
 #DEFAULT_MODEL = "lbl/deepseek-r1:llama-70b
 #DEFAULT_MODEL= "openai/gpt-4o" 
 #DEFAULT_MODEL = "openai/gpt-4o-mini" 
-DEFAULT_MODEL = "openai/o1"
+#DEFAULT_MODEL = "openai/o1"
 #DEFAULT_MODEL = "openai/o1-mini"
 #DEFAULT_MODEL = "anthropic/claude-haiku"
 #DEFAULT_MODEL = "anthropic/claude-sonnet"
@@ -67,7 +67,7 @@ DEFAULT_MODEL = "openai/o1"
 #EDITOR_MODEL = "anthropic/claude-haiku"
 #EDITOR_MODEL = "anthropic/claude-sonnet"
 #EDITOR_MODEL = "anthropic/claude-opus"
-EDITOR_MODEL = "google/gemini-pro"
+#EDITOR_MODEL = "google/gemini-pro"
 #EDITOR_MODEL = "google/gemini-flash"
 #EDITOR_MODEL = "aws/llama-3.1-405b"
 #EDITOR_MODEL = "aws/llama-3.1-70b"
