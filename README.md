@@ -60,23 +60,21 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
 ## 🚀 Installation
 
 1. Clone the repository:
-   Go to the directory of your choice, then 
    ```
-   git clone https://github.com/lbnl-science-it/omni-engineer-lbl
-   
+   git clone https://github.com/doriandarko/omni-engineer.git
+   cd omni-engineer
    ```
-   Switch to the ```utilities``` branch
-   ```
-   git checkout utilities
-   ````
 2. Install the required packages:
    ```
    pip install -r requirements.txt
    ```
-2. Set an environment variable on your machine for `CBORG_API_KEY`. Please use the best practices for API key management described [here](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety).
+3. Rename the .env.example to .env and add your API Key:
+   ```
+   OPENROUTER_API_KEY="Your key"
+   ```
 4. Run the main script:
    ```
-   python main.py 
+   python omni-eng.py
    ```
 
 ## 📚 Usage
