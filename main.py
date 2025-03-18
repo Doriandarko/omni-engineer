@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from colorama import init, Fore, Back, Style
 import difflib
 import asyncio
-from duckduckgo_search import AsyncDDGS
+from duckduckgo_search import DDGS
 import json
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
@@ -33,8 +33,8 @@ client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
-DEFAULT_MODEL = "openai/o1-mini-2024-09-12"
-EDITOR_MODEL = "anthropic/claude-3.5-sonnet"
+DEFAULT_MODEL = "anthropic/claude-3.7-sonnet:thinking"
+EDITOR_MODEL = "google/gemini-2.0-flash-001"
 # Other common models:
 # "openai/gpt-4o-2024-08-06"
 # "meta-llama/llama-3.1-405b-instruct"
@@ -206,7 +206,7 @@ async def handle_image_command(filepaths_or_urls, default_chat_history):
     return default_chat_history
 
 async def aget_results(word):
-    results = await AsyncDDGS(proxy=None).atext(word, max_results=100)
+    results = await DDGS(proxy=None).atext(word, max_results=100)
     return results
 
 def clear_console():
@@ -217,20 +217,94 @@ def print_colored(text, color=Fore.WHITE, style=Style.NORMAL, end='\n'):
 
 def get_streaming_response(messages, model):
     try:
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            stream=True,
-        )
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+        
+        # Configure model-specific reasoning settings
+        reasoning_config = None
+        if "anthropic" in model:
+            reasoning_config = {
+                "max_tokens": 8000  # For Anthropic models
+            }
+        elif "openai" in model:
+            reasoning_config = {
+                "effort": "high"  # For OpenAI models
+            }
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": 10000,
+            "stream": True
+        }
+        
+        # Only add reasoning if we have a configuration
+        if reasoning_config:
+            payload["reasoning"] = reasoning_config
+        
+        # Make the direct API call
+        response = requests.post(url, json=payload, headers=headers, stream=True)
+        response.raise_for_status()
+        
         full_response = ""
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                print_colored(chunk.choices[0].delta.content, end="")
-                full_response += chunk.choices[0].delta.content
-        return full_response.strip()
+        full_reasoning = ""
+        current_mode = None  # Track if we're in reasoning or content mode
+        
+        # Process the SSE stream
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    if line == 'data: [DONE]':
+                        break
+                    
+                    line = line[6:]  # Remove 'data: ' prefix
+                    try:
+                        chunk = json.loads(line)
+                        delta = chunk.get('choices', [{}])[0].get('delta', {})
+                        
+                        # Check for reasoning tokens
+                        if 'reasoning' in delta and delta['reasoning'] is not None:
+                            # Check if we need to transition from content to reasoning
+                            if current_mode != "reasoning":
+                                current_mode = "reasoning"
+                            
+                            # Print reasoning in cyan, no prefix
+                            print_colored(delta['reasoning'], Fore.CYAN, end="")
+                            full_reasoning += delta['reasoning']
+                        
+                        # Check for content tokens
+                        elif 'content' in delta and delta['content'] is not None:
+                            # Check if we need to transition from reasoning to content
+                            if current_mode == "reasoning":
+                                print("\n\n")  # Add spacing between reasoning and content
+                                current_mode = "content"
+                            elif current_mode is None:
+                                current_mode = "content"
+                            
+                            # Print content in white, no prefix
+                            print_colored(delta['content'], Fore.WHITE, end="")
+                            full_response += delta['content']
+                            
+                    except json.JSONDecodeError:
+                        continue
+                    except Exception as e:
+                        # Just continue on parse errors
+                        continue
+        
+        # Ensure newline at end
+        print()
+        
+        return {
+            "content": full_response,
+            "reasoning": full_reasoning
+        }
     except Exception as e:
         print_colored(f"Error in streaming response: {e}", Fore.RED)
-        return ""
+        return {"content": "", "reasoning": ""}
 
 def read_file_content(filepath):
     try:
@@ -734,7 +808,13 @@ async def main():
             try:
                 default_chat_history.append({"role": "user", "content": prompt})
                 response = get_streaming_response(default_chat_history, DEFAULT_MODEL)
-                default_chat_history.append({"role": "assistant", "content": response})
+                
+                # Store both content and reasoning in chat history
+                default_chat_history.append({
+                    "role": "assistant", 
+                    "content": response["content"],
+                    "reasoning": response["reasoning"] if response["reasoning"] else None
+                })
             except Exception as e:
                 print_colored(f"Error: {e}. Please try again.", Fore.RED)
 
