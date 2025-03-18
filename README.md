@@ -88,6 +88,8 @@ Please use the issue tracker only for reporting actual bugs in the code. This he
 
 Contributions to Omni Engineer are welcome! Please feel free to submit pull requests, create issues for bugs, or suggest new features.
 
+omni-engineer Copyright (c) 2024, Pietro Schirano
+
 ## ⭐️ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Doriandarko/omni-engineer&type=Date)](https://star-history.com/#Doriandarko/omni-engineer&Date)
