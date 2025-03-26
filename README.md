@@ -61,7 +61,7 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
    ```
 4. Run the main script:
    ```
-   python omni-eng.py
+   python main.py
    ```
 
 ## 📚 Usage
