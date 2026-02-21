@@ -39,6 +39,9 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
 - `/save`: Save current chat
 - `/load`: Load a previous chat
 - `/undo <filepath>`: Undo last file edit
+- `/list`: List files, searches, and images in memory
+- `/exec <command>`: Execute a shell command
+- `/atpost <text>`: Post a message to the AT Protocol Fedaverse
 - `/help`: Display available commands
 - `/model`: Show current AI model
 - `/change_model`: Change the AI model
@@ -58,6 +61,8 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
 3. Rename the .env.example to .env and add your API Key:
    ```
    OPENROUTER_API_KEY="Your key"
+   AT_IDENTIFIER="your_handle.bsky.social"
+   AT_PASSWORD="your_app_password"
    ```
 4. Run the main script:
    ```
@@ -79,6 +84,7 @@ Omni Engineer utilizes OpenRouter to access a variety of AI models. The default 
 - **Syntax Highlighting**: Improved code readability with syntax highlighting.
 - **Image Context**: Add both local and URL-based images to your AI context.
 - **Flexible Model Selection**: Switch between different AI models for various tasks.
+- **AT Protocol Posting**: Share updates to the Fedaverse via `/atpost`.
 
 ## 🐛 Issue Reporting
 

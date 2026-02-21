@@ -7,3 +7,4 @@ rich>=13.7.0
 Pillow>=10.2.0
 prompt_toolkit>=3.0.43
 requests>=2.31.0
+atproto>=0.0.36

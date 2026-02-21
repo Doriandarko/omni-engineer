@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import requests
 from PIL import Image
 from io import BytesIO
+from atproto import Client
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -32,6 +33,10 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
+
+AT_IDENTIFIER = os.getenv("AT_IDENTIFIER")
+AT_PASSWORD = os.getenv("AT_PASSWORD")
+at_client = None
 
 DEFAULT_MODEL = "anthropic/claude-3.7-sonnet:thinking"
 EDITOR_MODEL = "google/gemini-2.0-flash-001"
@@ -78,7 +83,12 @@ file_templates = {
 undo_history = {}
 stored_images = {}
 command_history = FileHistory('.aiconsole_history.txt')
-commands = WordCompleter(['/add', '/edit', '/new', '/search', '/image', '/clear', '/reset', '/diff', '/history', '/save', '/load', '/undo', '/help', '/model', '/change_model', '/show', 'exit'], ignore_case=True)
+commands = WordCompleter([
+    '/add', '/edit', '/new', '/search', '/image',
+    '/clear', '/reset', '/diff', '/history', '/save',
+    '/load', '/undo', '/list', '/exec', '/atpost', '/help',
+    '/model', '/change_model', '/show', 'exit'
+], ignore_case=True)
 session = PromptSession(history=command_history)
 
 async def get_input_async(message):
@@ -594,6 +604,74 @@ async def handle_undo_command(filepath):
     else:
         print_colored(f"❌ No undo history for {filepath}", Fore.RED)
 
+async def handle_exec_command(command):
+    """Execute a shell command and display the output."""
+    if not command:
+        print_colored("❌ No command provided.", Fore.RED)
+        return
+    try:
+        process = await asyncio.create_subprocess_shell(
+            command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await process.communicate()
+        output = stdout.decode().strip()
+        if output:
+            print(output)
+        else:
+            print_colored("(no output)", Fore.YELLOW)
+    except Exception as e:
+        print_colored(f"❌ Error executing command: {e}", Fore.RED)
+
+def get_at_client():
+    """Initialize and return an authenticated AT Protocol client."""
+    global at_client
+    if at_client is not None:
+        return at_client
+    if not AT_IDENTIFIER or not AT_PASSWORD:
+        print_colored(
+            "❌ AT_IDENTIFIER or AT_PASSWORD environment variables not set.",
+            Fore.RED,
+        )
+        return None
+    try:
+        at_client = Client()
+        at_client.login(AT_IDENTIFIER, AT_PASSWORD)
+        return at_client
+    except Exception as e:
+        print_colored(f"❌ Failed to login to AT Protocol: {e}", Fore.RED)
+        at_client = None
+        return None
+
+async def handle_atpost_command(text):
+    """Post a status update to the AT Protocol Fedaverse."""
+    if not text:
+        print_colored("❌ No text provided for the post.", Fore.RED)
+        return
+    client = get_at_client()
+    if not client:
+        return
+    try:
+        client.send_post(text)
+        print_colored("✅ Posted to AT Protocol Fedaverse!", Fore.GREEN)
+    except Exception as e:
+        print_colored(f"❌ Error posting to AT Protocol: {e}", Fore.RED)
+
+async def handle_list_command():
+    """List files, searches, and images currently in memory."""
+    if not added_files and not stored_searches and not stored_images:
+        print_colored("No files, searches, or images in memory.", Fore.YELLOW)
+        return
+    print_files_and_searches_in_memory()
+    if stored_images:
+        image_list = ', '.join(stored_images.keys())
+        print_colored(
+            f"🖼️ Images currently in memory: {image_list}",
+            Fore.CYAN,
+            Style.BRIGHT,
+        )
+
 def syntax_highlight(code, language):
     lexer = get_lexer_by_name(language)
     return highlight(code, lexer, TerminalFormatter())
@@ -621,6 +699,9 @@ def print_welcome_message():
     table.add_row("/save", "Save chat history to a file")
     table.add_row("/load", "Load chat history from a file")
     table.add_row("/undo", "Undo last edit for a specific file")
+    table.add_row("/list", "List files, searches, and images in memory")
+    table.add_row("/exec", "Execute a shell command")
+    table.add_row("/atpost", "Post a message to the AT Protocol Fedaverse")
     table.add_row("/help", "Show this help message")
     table.add_row("/model", "Show current AI model")
     table.add_row("/change_model", "Change the AI model")
@@ -648,6 +729,13 @@ def print_files_and_searches_in_memory():
         search_list = ', '.join(stored_searches.keys())
         print_colored(
             f"🔍 Searches currently in memory: {search_list}", Fore.CYAN, Style.BRIGHT
+        )
+    if stored_images:
+        image_list = ', '.join(stored_images.keys())
+        print_colored(
+            f"🖼️ Images currently in memory: {image_list}",
+            Fore.CYAN,
+            Style.BRIGHT,
         )
 
 def display_diff(original, edited):
@@ -785,6 +873,20 @@ async def main():
             if prompt.startswith("/undo "):
                 filepath = prompt.split("/undo ", 1)[1].strip()
                 await handle_undo_command(filepath)
+                continue
+
+            if prompt.startswith("/list"):
+                await handle_list_command()
+                continue
+
+            if prompt.startswith("/exec "):
+                command = prompt.split("/exec ", 1)[1].strip()
+                await handle_exec_command(command)
+                continue
+
+            if prompt.startswith("/atpost "):
+                text = prompt.split("/atpost ", 1)[1].strip()
+                await handle_atpost_command(text)
                 continue
 
             if prompt.startswith("/help"):
