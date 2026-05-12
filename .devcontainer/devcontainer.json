@@ -1,0 +1,21 @@
+{
+  "name": "Omni Engineer",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  },
+  "secrets": {
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key"
+    },
+    "ANTHROPIC_API_KEY": {
+      "description": "Anthropic API key"
+    }
+  }
+}
