@@ -61,7 +61,24 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
    ```
 4. Run the main script:
    ```
-   python omni-eng.py
+   python main.py
+   ```
+
+## Daytona / Dev Container
+
+This repository includes a `.devcontainer/devcontainer.json` for Daytona and
+other Dev Container-compatible tools. The container uses Python 3.11, installs
+`requirements.txt`, and copies `.env.example` to `.env` on first creation so you
+can add your own `OPENROUTER_API_KEY` without committing secrets.
+
+To use it with Daytona:
+
+1. Create a Daytona workspace from this repository.
+2. Open a terminal in the workspace.
+3. Add your OpenRouter key to `.env`.
+4. Run Omni Engineer with:
+   ```
+   python main.py
    ```
 
 ## 📚 Usage
