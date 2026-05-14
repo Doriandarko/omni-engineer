@@ -1,0 +1,22 @@
+{
+  "name": "Omni Engineer",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "containerEnv": {
+    "OPENROUTER_API_KEY": "${localEnv:OPENROUTER_API_KEY}",
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  },
+  "postCreateCommand": "python -m pip install --upgrade pip && pip install -r requirements.txt && cp -n .env.example .env || true",
+  "postAttachCommand": "printf '\\nOmni Engineer is ready. Add provider keys in Daytona secrets or .env, then run: python main.py\\n'"
+}
