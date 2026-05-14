@@ -1,0 +1,20 @@
+{
+  "name": "Omni Engineer",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
+  "postCreateCommand": "python -m pip install --user --upgrade pip && python -m pip install --user -r requirements.txt",
+  "remoteEnv": {
+    "OPENROUTER_API_KEY": "${localEnv:OPENROUTER_API_KEY}"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.terminal.activateEnvironment": false
+      },
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}
