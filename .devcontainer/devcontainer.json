@@ -1,0 +1,21 @@
+{
+  "name": "Omni Engineer",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "workspaceFolder": "/workspaces/omni-engineer",
+  "remoteEnv": {
+    "OPENROUTER_API_KEY": "${localEnv:OPENROUTER_API_KEY}"
+  },
+  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
