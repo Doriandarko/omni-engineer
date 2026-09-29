@@ -246,7 +246,7 @@ def get_streaming_response(messages, model):
             payload["reasoning"] = reasoning_config
         
         # Make the direct API call
-        response = requests.post(url, json=payload, headers=headers, stream=True)
+        response = requests.post(url, json=payload, headers=headers, stream=True, timeout=(10, 300))
         response.raise_for_status()
         
         full_response = ""
@@ -482,7 +482,7 @@ async def handle_new_command(default_chat_history, editor_chat_history, filepath
         file_ext = os.path.splitext(filepath)[1][1:]
         template = file_templates.get(file_ext, "")
         try:
-            with open(filepath, 'x') as f:
+            with open(filepath, 'x', encoding='utf-8') as f:
                 f.write(template)
             print_colored(f"✅ Created {filepath} with template", Fore.GREEN)
             created_files.append(filepath)
@@ -563,7 +563,7 @@ def handle_history_command(chat_history):
 async def handle_save_command(chat_history):
     filename = await get_input_async("Enter filename to save chat history:")
     try:
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             json.dump(chat_history, f)
         print_colored(f"✅ Chat history saved to {filename}", Fore.GREEN)
     except IOError as e:
@@ -572,7 +572,7 @@ async def handle_save_command(chat_history):
 async def handle_load_command():
     filename = await get_input_async("Enter filename to load chat history:")
     try:
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             loaded_history = json.load(f)
         print_colored(f"✅ Chat history loaded from {filename}", Fore.GREEN)
         return loaded_history
