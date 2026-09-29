@@ -452,6 +452,16 @@ async def handle_edit_command(default_chat_history, editor_chat_history, filepat
                             print_colored(f"➕ NEW Line {line_index+1}: {line[:50]}...", Fore.YELLOW)
                             line_index += 1
 
+            # Flush the final streamed line when the model response does not
+            # end with a newline. Otherwise the last line is silently dropped.
+            if buffer:
+                if line_index < len(edited_lines):
+                    edited_lines[line_index] = buffer
+                    print_colored(f"✏️ Updated Line {line_index+1}: {buffer[:50]}...", Fore.CYAN)
+                else:
+                    edited_lines.append(buffer)
+                    print_colored(f"➕ NEW Line {line_index+1}: {buffer[:50]}...", Fore.YELLOW)
+
             result = '\n'.join(edited_lines)
             undo_history[filepath] = current_content   # Store undo
             editor_chat_history.append({"role": "assistant", "content": result})
