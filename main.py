@@ -28,13 +28,24 @@ is_diff_on = True
 
 init(autoreset=True)
 load_dotenv()
+
+openai_base_url = os.getenv("OPENAI_BASE_URL")
+if openai_base_url:
+    api_key = os.getenv("OPENAI_API_KEY") or "ollama"
+    base_url = openai_base_url
+else:
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    base_url = "https://openrouter.ai/api/v1"
+
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
+    base_url=base_url,
+    api_key=api_key,
 )
 
-DEFAULT_MODEL = "anthropic/claude-3.7-sonnet:thinking"
-EDITOR_MODEL = "google/gemini-2.0-flash-001"
+DEFAULT_MODEL = os.getenv(
+    "DEFAULT_MODEL", "anthropic/claude-3.7-sonnet:thinking"
+)
+EDITOR_MODEL = os.getenv("EDITOR_MODEL", "google/gemini-2.0-flash-001")
 # Other common models:
 # "openai/gpt-4o-2024-08-06"
 # "meta-llama/llama-3.1-405b-instruct"

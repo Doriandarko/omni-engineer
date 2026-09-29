@@ -59,6 +59,15 @@ Omni Engineer is a spiritual successor to [Claude Engineer](https://github.com/D
    ```
    OPENROUTER_API_KEY="Your key"
    ```
+
+   To use Ollama or another OpenAI-compatible endpoint instead of OpenRouter:
+   ```
+   OPENAI_BASE_URL="http://localhost:11434/v1"
+   OPENAI_API_KEY="ollama"
+   DEFAULT_MODEL="llama3.2:3b"
+   EDITOR_MODEL="starcoder2:3b"
+   ```
+   `OPENAI_API_KEY` can be any non-empty value for local servers that do not require authentication. Keep the `/v1` suffix for Ollama's OpenAI-compatible API.
 4. Run the main script:
    ```
    python omni-eng.py
@@ -70,7 +79,7 @@ After launching the console, enter commands or questions as needed. The AI will 
 
 ## 🤖 AI Models
 
-Omni Engineer utilizes OpenRouter to access a variety of AI models. The default model is set to "anthropic/claude-3.5-sonnet" for general assistance and "google/gemini-pro-1.5" for code editing. You can view the current model with `/model` and change it using `/change_model`. For detailed information on available models and their capabilities, refer to [OpenRouter's documentation](https://openrouter.ai/models).
+Omni Engineer uses OpenRouter by default, but it can also connect to any OpenAI-compatible endpoint through `OPENAI_BASE_URL`. The default and editor models can be overridden with `DEFAULT_MODEL` and `EDITOR_MODEL`. You can view the current model with `/model` and change it using `/change_model`. For OpenRouter model names, refer to [OpenRouter's documentation](https://openrouter.ai/models).
 
 ## 🔧 Advanced Features
 
