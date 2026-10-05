@@ -312,10 +312,15 @@ def read_file_content(filepath):
             raw_content = file.read()
 
         try:
-            return raw_content.decode('utf-8')
+            # utf-8-sig also strips a leading BOM.
+            text = raw_content.decode('utf-8-sig')
         except UnicodeDecodeError:
             # Older Windows-authored text/HTML files are commonly CP1252.
-            return raw_content.decode('cp1252')
+            text = raw_content.decode('cp1252')
+
+        # Reading bytes skips the newline translation text-mode open() did, so
+        # restore it for both decodings: CRLF becomes LF as before.
+        return text.replace('\r\n', '\n')
     except FileNotFoundError:
         return f"❌ Error: File not found: {filepath}"
     except (IOError, UnicodeDecodeError) as e:
