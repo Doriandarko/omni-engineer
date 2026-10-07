@@ -308,11 +308,22 @@ def get_streaming_response(messages, model):
 
 def read_file_content(filepath):
     try:
-        with open(filepath, 'r', encoding='utf-8') as file:
-            return file.read()
+        with open(filepath, 'rb') as file:
+            raw_content = file.read()
+
+        try:
+            # utf-8-sig also strips a leading BOM.
+            text = raw_content.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            # Older Windows-authored text/HTML files are commonly CP1252.
+            text = raw_content.decode('cp1252')
+
+        # Reading bytes skips the newline translation text-mode open() did, so
+        # restore it for both decodings: CRLF becomes LF as before.
+        return text.replace('\r\n', '\n')
     except FileNotFoundError:
         return f"❌ Error: File not found: {filepath}"
-    except IOError as e:
+    except (IOError, UnicodeDecodeError) as e:
         return f"❌ Error reading {filepath}: {e}"
 
 def write_file_content(filepath, content):
